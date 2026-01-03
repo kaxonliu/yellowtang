@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -26,6 +27,11 @@ func TrimLinesRegex(text string) string {
 	// 去除每行开头的空格和制表符
 	re := regexp.MustCompile(`(?m)^[ \t]+|[ \t]+$`)
 	return re.ReplaceAllString(text, "")
+}
+
+func isPodHealthy(pod corev1.Pod) bool {
+	// 实现健康检查逻辑，例如通过 Pod 的状态、容器状态等
+	return pod.Status.Phase == corev1.PodRunning && len(pod.Status.ContainerStatuses) > 0 && pod.Status.ContainerStatuses[0].Ready
 }
 
 func (r *YellowTangReconciler) getService(serviceKey client.ObjectKey, ctx context.Context, tang *appsv1.YellowTang) (*corev1.Service, error) {
@@ -333,6 +339,37 @@ func (r *YellowTangReconciler) createPod(podName, pvcName, configMapName string,
 		return nil, err
 	}
 	r.Log.Info("POD created successfully", "POD.Name", podName)
+
+	// 新增：等待pod就绪的功能，否则会提前制作主从，会因为pod尚未就绪而导致大量失败
+	podKey := client.ObjectKey{Namespace: tang.Namespace, Name: podName}
+
+	start := time.Now()
+
+	for {
+		// 等待一段时间再检查 Pod 状态
+		time.Sleep(5 * time.Second)
+
+		// 获取 Pod 状态
+		pod := &corev1.Pod{}
+		if err := r.Get(ctx, podKey, pod); err != nil { // 在调用 r.Get 后，pod 变量将包含 Kubernetes 集群中该 Pod 的当前状态。
+			r.Log.Error(err, "Failed to get Pod", "Pod.Name", podName)
+			//return err
+			continue
+		}
+
+		// 检查 Pod 是否健康
+		if isPodHealthy(*pod) {
+			log.Log.Info("pod就绪")
+			r.Log.Info("Pod is healthy", "Pod.Name", podName)
+			break
+		} else {
+			log.Log.Info("pod未就绪")
+			r.Log.Info("Waiting for Pod to become healthy", "Pod.Name", podName)
+		}
+	}
+	elapsed := time.Since(start)
+	fmt.Printf("等待 pod 就绪耗时: %v\n", elapsed)
+
 	return &pod, nil
 
 }
