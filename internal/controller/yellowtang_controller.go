@@ -47,7 +47,14 @@ type YellowTangReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.18.4/pkg/reconcile
 func (r *YellowTangReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	logger := log.FromContext(ctx)
+	logger.Info("调谐函数触发执行", "req", req)
+
+	var tang appsv1.YellowTang
+
+	if err := r.Get(ctx, req.NamespacedName, &tang); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
 
 	// TODO(user): your logic here
 
