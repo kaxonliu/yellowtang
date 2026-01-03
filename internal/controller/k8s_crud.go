@@ -53,6 +53,7 @@ func (r *YellowTangReconciler) getorCreateService(name string, role string, ctx 
 
 func (r *YellowTangReconciler) createService(name string, role string, ctx context.Context, tang *appsv1.YellowTang) (*corev1.Service, error) {
 	// 定义 OwnerReference
+	logger := log.FromContext(ctx)
 	ownerRef := metav1.OwnerReference{
 		APIVersion: MysqlClusterAPIVersion,
 		Kind:       MysqlClusterKind,
@@ -91,6 +92,7 @@ func (r *YellowTangReconciler) createService(name string, role string, ctx conte
 		},
 	}
 	if err := r.Create(ctx, &service); err != nil {
+		logger.Info("创建 svc 失败", "svcName", name, "error", err)
 		return nil, err
 	}
 	return &service, nil
