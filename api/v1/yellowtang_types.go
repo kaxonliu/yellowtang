@@ -46,7 +46,7 @@ type YellowTangSpec struct {
 	Image             string          `json:"image"`
 	Replicas          int32           `json:"replicas,omitempty"`
 	MasterServiceName string          `json:"masterServiceName"`
-	SlaveServiceName  string          `json:"slaveServiceName`
+	SlaveServiceName  string          `json:"slaveServiceName"`
 	Storage           StorageConfig   `json:"storage"`
 	Resources         ResourcesConfig `json:"resources"`
 	ReadinessProbe    *corev1.Probe   `json:"readinessProbe,omitempty"`
