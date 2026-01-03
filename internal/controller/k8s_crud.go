@@ -34,7 +34,7 @@ func (r *YellowTangReconciler) getService(serviceKey client.ObjectKey, ctx conte
 
 func (r *YellowTangReconciler) getorCreateService(name string, role string, ctx context.Context, tang *appsv1.YellowTang) (*corev1.Service, error) {
 	logger := log.FromContext(ctx)
-	serviceKey := client.ObjectKey{Namespace: tang.Spec.NameSpace, Name: name}
+	serviceKey := client.ObjectKey{Namespace: tang.Namespace, Name: name}
 	service, err := r.getService(serviceKey, ctx, tang)
 	if err == nil {
 		return service, nil
@@ -65,7 +65,7 @@ func (r *YellowTangReconciler) createService(name string, role string, ctx conte
 	service := corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: tang.Spec.NameSpace,
+			Namespace: tang.Namespace,
 			Labels: map[string]string{
 				"tang": "true",
 				"app":  "mysql",
@@ -109,7 +109,7 @@ func (r *YellowTangReconciler) getConfigMap(cmKey client.ObjectKey, ctx context.
 }
 
 func (r *YellowTangReconciler) getorCreatConfigMap(name string, serverId int, ctx context.Context, tang *appsv1.YellowTang) (*corev1.ConfigMap, error) {
-	cmKey := client.ObjectKey{Namespace: tang.Spec.NameSpace, Name: name}
+	cmKey := client.ObjectKey{Namespace: tang.Namespace, Name: name}
 	cm, err := r.getConfigMap(cmKey, ctx, tang)
 	if err == nil {
 		return cm, nil
@@ -147,7 +147,7 @@ func (r *YellowTangReconciler) createConfigMap(name string, serverId int, ctx co
 	cm := corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: tang.Spec.NameSpace,
+			Namespace: tang.Namespace,
 			Labels: map[string]string{
 				"tang": "true",
 				"app":  "mysql",
@@ -178,7 +178,7 @@ func (r *YellowTangReconciler) getPVC(pvcKey client.ObjectKey, ctx context.Conte
 }
 
 func (r *YellowTangReconciler) getorCreatePVC(name string, ctx context.Context, tang *appsv1.YellowTang) (*corev1.PersistentVolumeClaim, error) {
-	pvcKey := client.ObjectKey{Namespace: tang.Spec.NameSpace, Name: name}
+	pvcKey := client.ObjectKey{Namespace: tang.Namespace, Name: name}
 	pvc, err := r.getPVC(pvcKey, ctx, tang)
 	if err == nil {
 		return pvc, nil
@@ -206,7 +206,7 @@ func (r *YellowTangReconciler) createPVC(name string, ctx context.Context, tang 
 	pvc := corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: tang.Spec.NameSpace,
+			Namespace: tang.Namespace,
 			Labels: map[string]string{
 				"tang": "true",
 				"app":  "mysql",
@@ -260,7 +260,7 @@ func (r *YellowTangReconciler) createPod(podName, pvcName, configMapName string,
 	pod := corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      podName,
-			Namespace: tang.Spec.NameSpace,
+			Namespace: tang.Namespace,
 			Labels: map[string]string{
 				"tang": "true",
 				"app":  "mysql",
