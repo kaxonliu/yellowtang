@@ -39,6 +39,7 @@ func (r *YellowTangReconciler) getorCreateService(name string, role string, ctx 
 	}
 
 	if errors.IsNotFound(err) {
+		r.Log.Info("准备创建 svc", "svcName", name)
 		service, err := r.createService(name, role, ctx, tang)
 		if err == nil {
 			return service, nil

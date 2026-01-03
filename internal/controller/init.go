@@ -27,9 +27,11 @@ func (r *YellowTangReconciler) init(ctx context.Context, tang *appsv1.YellowTang
 	// 创建 svc
 	if _, err := r.getorCreateService(tang.Spec.MasterServiceName, "master", ctx, tang); err != nil {
 		logger.Error(err, "创建 master svc 失败")
+		return fmt.Errorf("failed to create master service: %v", err)
 	}
 	if _, err := r.getorCreateService(tang.Spec.SlaveServiceName, "slave", ctx, tang); err != nil {
 		logger.Error(err, "创建 slave svc 失败")
+		return fmt.Errorf("failed to create slave service: %v", err)
 	}
 
 	// 创建 cm
