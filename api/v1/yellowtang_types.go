@@ -43,13 +43,13 @@ type YellowTangSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	Image          string          `json:"image"`
-	Replicas       int32           `json:"replicas,omitempty"`
-	MasterService  string          `json:"masterService"`
-	SlaveService   string          `json:"slaveService"`
-	Storage        StorageConfig   `json:"storage"`
-	Resources      ResourcesConfig `json:"resources"`
-	ReadinessProbe *corev1.Probe   `json:"readinessProbe,omitempty"`
+	Image             string          `json:"image"`
+	Replicas          int32           `json:"replicas,omitempty"`
+	MasterServiceName string          `json:"masterServiceName"`
+	SlaveServiceName  string          `json:"slaveServiceName`
+	Storage           StorageConfig   `json:"storage"`
+	Resources         ResourcesConfig `json:"resources"`
+	ReadinessProbe    *corev1.Probe   `json:"readinessProbe,omitempty"`
 }
 
 // YellowTangStatus defines the observed state of YellowTang
