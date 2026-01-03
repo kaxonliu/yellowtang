@@ -3,7 +3,9 @@ package controller
 import (
 	"context"
 	"fmt"
+	"os"
 	"regexp"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -11,6 +13,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/remotecommand"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -330,4 +335,129 @@ func (r *YellowTangReconciler) createPod(podName, pvcName, configMapName string,
 	r.Log.Info("POD created successfully", "POD.Name", podName)
 	return &pod, nil
 
+}
+
+// labelPod 为 Pod 打标签
+func (r *YellowTangReconciler) labelPod(pod *corev1.Pod, role string, ctx context.Context, tang *appsv1.YellowTang) error {
+	// 更新 Pod 标签
+	if pod.Labels == nil {
+		pod.Labels = make(map[string]string)
+	}
+	pod.Labels["role"] = role
+
+	if err := r.Update(ctx, pod); err != nil {
+		return fmt.Errorf("failed to update pod %s: %v", pod.Name, err)
+	}
+
+	return nil
+}
+
+// 制作主从同步的函数
+func (r *YellowTangReconciler) setupMasterSlaveReplication(ctx context.Context, masterName string, slaveNames []string, tang *appsv1.YellowTang) error {
+	log := log.FromContext(ctx)
+	log.Info("setupMasterSlaveReplication函数", "masterName", masterName, "slaveNames", slaveNames)
+
+	// 获取主库 Pod 对象
+	masterPod := &corev1.Pod{}
+	masterPodKey := client.ObjectKey{Namespace: tang.Namespace, Name: masterName}
+	if err := r.Get(ctx, masterPodKey, masterPod); err != nil {
+		return fmt.Errorf("failed to get master pod %s: %v", masterName, err)
+	}
+
+	// 打标签主库: 确保理解关联到主svc上，从库会通过主库的svc来连接进行同步
+	if err := r.labelPod(masterPod, "master", ctx, tang); err != nil {
+		return fmt.Errorf("failed to label master pod %s: %v", masterName, err)
+	}
+
+	// 为主库创建复制用户，并停止slave线程（如果之前自己是从库，那就应该停掉）
+	masterCommand := fmt.Sprintf(
+		"mysql -uroot -p%s -e \"CREATE USER IF NOT EXISTS 'replica'@'%%' IDENTIFIED BY 'password'; GRANT REPLICATION SLAVE ON *.* TO 'replica'@'%%';STOP slave;\"",
+		MySQLPassword,
+	)
+	if _, err := r.execCommandOnPod(masterPod, masterCommand); err != nil {
+		return fmt.Errorf("failed to execute command on master pod %s: %v", masterName, err)
+	}
+
+	// 配置每个从库: 如果从库名数组为空，则
+	for _, slaveName := range slaveNames { // 如果没有从库，则循环结束，不会配置从库
+		slavePod := &corev1.Pod{}
+		slavePodKey := client.ObjectKey{Namespace: tang.Namespace, Name: slaveName}
+		if err := r.Get(ctx, slavePodKey, slavePod); err != nil {
+			return fmt.Errorf("failed to get slave pod %s: %v", slaveName, err)
+		}
+
+		// 配置主从复制: 先停slave，再配置、然后再启slave
+		masterServiceName := tang.Spec.MasterServiceName
+		slaveCommand := fmt.Sprintf(
+			"mysql -uroot -p%s -e \"STOP SLAVE;CHANGE MASTER TO MASTER_HOST='%s', MASTER_USER='replica', MASTER_PASSWORD='password', MASTER_AUTO_POSITION=1; START SLAVE;\"",
+			MySQLPassword,
+			masterServiceName,
+		)
+		if _, err := r.execCommandOnPod(slavePod, slaveCommand); err != nil {
+			return fmt.Errorf("failed to execute command on slave pod %s: %v", slaveName, err)
+		}
+
+		// 打标签
+		if err := r.labelPod(slavePod, "slave", ctx, tang); err != nil {
+			return fmt.Errorf("failed to label slave pod %s: %v", slaveName, err)
+		}
+	}
+
+	return nil
+}
+
+// kubectl exec 进入pod内执行命令
+func (r *YellowTangReconciler) execCommandOnPod(pod *corev1.Pod, command string) (string, error) {
+	// Load kubeconfig from default location
+	kubeconfig := os.Getenv("KUBECONFIG")
+	if kubeconfig == "" {
+		kubeconfig = "/root/.kube/config" // Fallback to default path
+	}
+	config, err := clientcmd.BuildConfigFromFlags("", KubeConfigPath) // 来自包："k8s.io/client-go/tools/clientcmd"
+	// config, err := rest.InClusterConfig() // 来自包："k8s.io/client-go/rest"
+
+	if err != nil {
+		return "", err
+	}
+
+	// Create a new Kubernetes clientset
+	kubeClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return "", err
+	}
+
+	// Create REST client for pod exec
+	restClient := kubeClient.CoreV1().RESTClient()
+	req := restClient.
+		Post().
+		Resource("pods").
+		Name(pod.Name).
+		Namespace(pod.Namespace).
+		SubResource("exec").
+		Param("stdin", "false").
+		Param("stdout", "true").
+		Param("stderr", "true").
+		Param("tty", "false").
+		Param("container", pod.Spec.Containers[0].Name).
+		Param("command", "/bin/sh").
+		Param("command", "-c").
+		Param("command", command)
+
+	// Create an executor
+	executor, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
+	if err != nil {
+		return "", err
+	}
+
+	// Execute the command
+	var output strings.Builder
+	err = executor.Stream(remotecommand.StreamOptions{
+		Stdout: &output,
+		Stderr: os.Stderr,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return output.String(), nil
 }

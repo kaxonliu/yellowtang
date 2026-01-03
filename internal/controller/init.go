@@ -61,5 +61,19 @@ func (r *YellowTangReconciler) init(ctx context.Context, tang *appsv1.YellowTang
 			return fmt.Errorf("failed to create pod %s: %v", podName, err)
 		}
 	}
+	// 6、制作主从关系
+	masterPodName := "mysql-01"
+	slavePodNames := []string{}
+	for i := int32(2); i <= replicas; i++ {
+		slavePodNames = append(slavePodNames, fmt.Sprintf("mysql-%02d", i))
+	}
+	logger.Info("init函数", "masterPodName", masterPodName, "slavePodNames", slavePodNames)
+
+	if err := r.setupMasterSlaveReplication(ctx, masterPodName, slavePodNames, tang); err != nil {
+		logger.Info("制作主从失败", "err", err)
+
+		return fmt.Errorf("failed to setup master-slave: %v", err)
+	}
+
 	return nil
 }
