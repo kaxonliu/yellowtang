@@ -44,6 +44,7 @@ type YellowTangSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	Image             string          `json:"image"`
+	NameSpace         string          `json:"namespace,omitempty"`
 	Replicas          int32           `json:"replicas,omitempty"`
 	MasterServiceName string          `json:"masterServiceName"`
 	SlaveServiceName  string          `json:"slaveServiceName"`

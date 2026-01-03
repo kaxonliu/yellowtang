@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 
+	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -27,10 +28,18 @@ import (
 	appsv1 "yellowtang/api/v1"
 )
 
+const (
+	MysqlClusterKind       = "YellowTang"
+	MysqlClusterAPIVersion = "apps.kaxonliu.com/v1"
+	MySQLPassword          = "password"           // Hardcoded MySQL password
+	KubeConfigPath         = "/root/.kube/config" // Hardcoded kubeconfig path
+)
+
 // YellowTangReconciler reconciles a YellowTang object
 type YellowTangReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	Log    logr.Logger // 日志记录器
 }
 
 // +kubebuilder:rbac:groups=apps.kaxonliu.com,resources=yellowtangs,verbs=get;list;watch;create;update;patch;delete
@@ -52,11 +61,45 @@ func (r *YellowTangReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	var tang appsv1.YellowTang
 
+	// 返回给客户端的错误提示
 	if err := r.Get(ctx, req.NamespacedName, &tang); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// TODO(user): your logic here
+	// 检查集群是否完成初始化
+	// 初始化完成则进入检测逻辑
+	// 未完成初始化则开始初始化集群
+	if _, ok := tang.Annotations["initialized"]; !ok {
+		// 初始化集群
+		if err := r.init(ctx, &tang); err == nil {
+			logger.Info("集群初始化成功")
+		} else {
+			logger.Error(err, "集群初始化失败")
+			return ctrl.Result{}, err
+		}
+
+		// 标记集群完成初始化
+		if tang.Annotations == nil {
+			tang.Annotations = map[string]string{}
+		}
+
+		tang.Annotations["initialized"] = "true"
+		if err := r.Update(ctx, &tang); err != nil {
+			return ctrl.Result{}, err
+		}
+
+	} else {
+		// 检测副本数
+		if result, err := r.checkReplicas(ctx, &tang); err != nil {
+			return result, err
+		}
+
+		//检测主从状态
+		if result, err := r.checkCluster(ctx, &tang); err != nil {
+			return result, err
+		}
+
+	}
 
 	return ctrl.Result{}, nil
 }
