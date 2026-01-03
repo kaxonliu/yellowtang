@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	appsv1 "yellowtang/api/v1"
 )
@@ -32,15 +33,16 @@ func (r *YellowTangReconciler) getService(serviceKey client.ObjectKey, ctx conte
 }
 
 func (r *YellowTangReconciler) getorCreateService(name string, role string, ctx context.Context, tang *appsv1.YellowTang) (*corev1.Service, error) {
+	logger := log.FromContext(ctx)
 	serviceKey := client.ObjectKey{Namespace: tang.Spec.NameSpace, Name: name}
 	service, err := r.getService(serviceKey, ctx, tang)
 	if err == nil {
 		return service, nil
 	}
 
-	r.Log.Info("没有找到 svc", "svcName", name)
+	logger.Info("没有找到 svc", "svcName", name)
 	if errors.IsNotFound(err) {
-		r.Log.Info("准备创建 svc", "svcName", name)
+		logger.Info("准备创建 svc", "svcName", name)
 		service, err := r.createService(name, role, ctx, tang)
 		if err == nil {
 			return service, nil
