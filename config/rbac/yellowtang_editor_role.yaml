@@ -1,0 +1,27 @@
+# permissions for end users to edit yellowtangs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: yellowtang
+    app.kubernetes.io/managed-by: kustomize
+  name: yellowtang-editor-role
+rules:
+- apiGroups:
+  - apps.kaxonliu.com
+  resources:
+  - yellowtangs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apps.kaxonliu.com
+  resources:
+  - yellowtangs/status
+  verbs:
+  - get

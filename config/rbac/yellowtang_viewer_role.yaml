@@ -1,0 +1,23 @@
+# permissions for end users to view yellowtangs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: yellowtang
+    app.kubernetes.io/managed-by: kustomize
+  name: yellowtang-viewer-role
+rules:
+- apiGroups:
+  - apps.kaxonliu.com
+  resources:
+  - yellowtangs
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apps.kaxonliu.com
+  resources:
+  - yellowtangs/status
+  verbs:
+  - get
