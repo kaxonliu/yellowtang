@@ -35,7 +35,7 @@ func (r *YellowTangReconciler) init(ctx context.Context, tang *appsv1.YellowTang
 	// 创建 cm
 	for i := int32(1); i <= replicas; i++ {
 		serverId := int(i)
-		configMapName := fmt.Sprintln("mysql-%02d", i)
+		configMapName := fmt.Sprintf("mysql-%02d", i)
 		if _, err := r.getorCreatConfigMap(configMapName, serverId, ctx, tang); err != nil {
 			return fmt.Errorf("failed to create configmap %s: %v", configMapName, err)
 		}
@@ -43,7 +43,7 @@ func (r *YellowTangReconciler) init(ctx context.Context, tang *appsv1.YellowTang
 
 	// 创建 pvc
 	for i := int32(1); i <= replicas; i++ {
-		pvcName := fmt.Sprintln("mysql-%02d", i)
+		pvcName := fmt.Sprintf("mysql-%02d", i)
 		if _, err := r.getorCreatePVC(pvcName, ctx, tang); err != nil {
 			return fmt.Errorf("failed to create pvc %s: %v", pvcName, err)
 		}
@@ -51,9 +51,9 @@ func (r *YellowTangReconciler) init(ctx context.Context, tang *appsv1.YellowTang
 
 	// 创建 Pod
 	for i := int32(1); i <= replicas; i++ {
-		podName := fmt.Sprintln("mysql-%02d", i)
-		pvcName := fmt.Sprintln("mysql-%02d", i)
-		configmapName := fmt.Sprintln("mysql-%02d", i)
+		podName := fmt.Sprintf("mysql-%02d", i)
+		pvcName := fmt.Sprintf("mysql-%02d", i)
+		configmapName := fmt.Sprintf("mysql-%02d", i)
 
 		if _, err := r.createPod(podName, pvcName, configmapName, ctx, tang); err != nil {
 			return fmt.Errorf("failed to create pod %s: %v", podName, err)
