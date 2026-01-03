@@ -25,6 +25,6 @@ spec:
       port: 3306
     initialDelaySeconds: 15
     periodSeconds: 10 
-    TimeoutSeconds: 5
-    SuccessThreshold: 1
-    FailureThreshold: 3
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 3
