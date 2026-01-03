@@ -17,19 +17,39 @@ limitations under the License.
 package v1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+// 存储
+type StorageConfig struct {
+	StorageClassName string `json:"storageClassName"`
+	Size             string `json:"size"`
+}
+
+type BaseResource struct {
+	CPU    string `json:"cpu"`
+	Memory string `json:"memory"`
+}
+
+// 资源要求定义
+type ResourcesConfig struct {
+	Requests BaseResource `json:"requests"`
+	Limits   BaseResource `json:"limits"`
+}
 
 // YellowTangSpec defines the desired state of YellowTang
 type YellowTangSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of YellowTang. Edit yellowtang_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	Image          string          `json:"image"`
+	Replicas       int32           `json:"replicas,omitempty"`
+	MasterService  string          `json:"masterService"`
+	SlaveService   string          `json:"slaveService"`
+	Storage        StorageConfig   `json:"storage"`
+	Resources      ResourcesConfig `json:"resources"`
+	ReadinessProbe *corev1.Probe   `json:"readinessProbe,omitempty"`
 }
 
 // YellowTangStatus defines the observed state of YellowTang

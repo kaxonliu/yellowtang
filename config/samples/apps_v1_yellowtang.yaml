@@ -6,4 +6,25 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: yellowtang-sample
 spec:
-  # TODO(user): Add fields here
+  image: crpi-qncvnqrzwhgewc92.cn-shanghai.personal.cr.aliyuncs.com/kaxonliu/mysql:5.7
+  replicas: 3
+  masterServiceName: master-service
+  slaveServiceName: slave-service
+  storage:
+    storageClassName: "local-path"
+    size: 1Gi
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1"
+      memory: "2Gi"
+  readinessProbe:
+    tcpSocket:
+      port: 3306
+    initialDelaySeconds: 15
+    periodSeconds: 10 
+    TimeoutSeconds: 5
+    SuccessThreshold: 1
+    FailureThreshold: 3
