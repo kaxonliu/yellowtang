@@ -75,7 +75,9 @@ func (r *YellowTangReconciler) checkSlaveStatus(masterPodName string, ctx contex
 		// 执行 SQL 查询
 		output, err := r.execCommandOnPod(&pod, sqlQuery)
 		if err != nil {
-			return allSlavePodList, failedSlavePodList, fmt.Errorf("failed to execute command on pod %s: %v", pod.Name, err)
+			log.Info("从库状态检测失败", "Pod", pod.Name, "错误", err)
+			failedSlavePodList = append(failedSlavePodList, pod)
+			continue
 		}
 
 		// 解析 SQL 查询结果
@@ -83,6 +85,7 @@ func (r *YellowTangReconciler) checkSlaveStatus(masterPodName string, ctx contex
 		ioThread := strings.Contains(output, "Slave_IO_Running: Yes")
 
 		if !(sqlThread && ioThread) {
+			log.Info("从库状态检测失败", "Pod", pod.Name, "错误", "从库状态的返回字段匹配失败")
 			failedSlavePodList = append(failedSlavePodList, pod)
 		}
 	}
