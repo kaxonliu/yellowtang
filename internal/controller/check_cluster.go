@@ -43,6 +43,7 @@ func (r *YellowTangReconciler) checkSlaveStatus(masterPodName string, ctx contex
 	// 判断依据是判断sql线程与io线程同时为yes代表成功否则失败
 
 	log := log.FromContext(ctx)
+	log.Info("开始检查所有从库的主从状态...")
 
 	failedSlavePodList := []corev1.Pod{}
 
@@ -53,12 +54,18 @@ func (r *YellowTangReconciler) checkSlaveStatus(masterPodName string, ctx contex
 	if err != nil {
 		return allSlavePodList, failedSlavePodList, fmt.Errorf("failed to get all pod %v", err)
 	}
+
+	_allPodNameList := []string{}
+	_allSlavePodNameList := []string{}
 	for _, pod := range allPodList {
+		_allPodNameList = append(_allPodNameList, pod.Name)
 		if pod.Name != masterPodName {
 			allSlavePodList = append(allSlavePodList, pod)
+			_allSlavePodNameList = append(_allSlavePodNameList, pod.Name)
 		}
 	}
-	log.Info("所有的从库pod", "从库Pod", allSlavePodList)
+	log.Info("所有的pod", "Pod", _allPodNameList)
+	log.Info("所有的从库pod", "Pod", _allSlavePodNameList)
 
 	// 筛选出来主从状态异常的从pod
 	// 准备 SQL 查询命令
@@ -80,7 +87,11 @@ func (r *YellowTangReconciler) checkSlaveStatus(masterPodName string, ctx contex
 		}
 	}
 
-	log.Info("主从状态检查完成", "主库", masterPodName, "状态失败的从库", failedSlavePodList)
+	_failedSlavePodNameList := []string{}
+	for _, pod := range failedSlavePodList {
+		_failedSlavePodNameList = append(_failedSlavePodNameList, pod.Name)
+	}
+	log.Info("主从状态检查完成", "主库", masterPodName, "状态失败的从库", _failedSlavePodNameList)
 
 	// 返回主库名称和所有主从状态异常的从库名称
 	return allSlavePodList, failedSlavePodList, nil
@@ -92,7 +103,7 @@ func (r *YellowTangReconciler) checkSlaveStatus(masterPodName string, ctx contex
 // 如果检测后发现主库没问题，那检测从库的状态并做主从设置
 func (r *YellowTangReconciler) checkCluster(ctx context.Context, tang *appsv1.YellowTang) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-	logger.Info("开始检测集群主从状态是否正常")
+	logger.Info("开始集群主从状态检测...")
 
 	// 检查主库是否挂掉
 	masterAlive, masterPodName, err := r.checkMasterStatus(ctx, tang)
