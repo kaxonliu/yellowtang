@@ -58,6 +58,7 @@ func (r *YellowTangReconciler) checkSlaveStatus(masterPodName string, ctx contex
 			allSlavePodList = append(allSlavePodList, pod)
 		}
 	}
+	log.Info("所有的从库pod", "从库Pod", allSlavePodList)
 
 	// 筛选出来主从状态异常的从pod
 	// 准备 SQL 查询命令
