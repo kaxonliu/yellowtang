@@ -20,6 +20,7 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -106,7 +107,10 @@ func (r *YellowTangReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *YellowTangReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// 增加：Owns(&v1.Pod{})
+	// 确保 pod 资源发生变动时触发调谐函数的执行
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&appsv1.YellowTang{}).
+		Owns(&corev1.Pod{}).
 		Complete(r)
 }
