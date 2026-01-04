@@ -131,8 +131,11 @@ func (r *YellowTangReconciler) checkCluster(ctx context.Context, tang *appsv1.Ye
 		for _, pod := range failedSlavePodList {
 			failedSlavePodNameList = append(failedSlavePodNameList, pod.Name)
 		}
-		if err := r.setupMasterSlaveReplication(ctx, masterPodName, failedSlavePodNameList, tang); err != nil {
-			return ctrl.Result{}, err
+		// 避免重复设置主库
+		if len(failedSlavePodNameList) > 1 {
+			if err := r.setupMasterSlaveReplication(ctx, masterPodName, failedSlavePodNameList, tang); err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 		// 确保所有的从Pod都有标签 role=slave
 		for _, pod := range allSlavePodList {
