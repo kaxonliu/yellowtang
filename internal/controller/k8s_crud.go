@@ -516,5 +516,13 @@ func (r *YellowTangReconciler) getPodByLabels(selectLabels map[string]string, ct
 		log.Error(err, "获取 Pod 列表失败")
 		return podList.Items, err
 	}
-	return podList.Items, nil
+
+	// 筛选出来 ready 的 pod
+	readyPodList := []corev1.Pod{}
+	for _, pod := range podList.Items {
+		if isPodHealthy(pod) {
+			readyPodList = append(readyPodList, pod)
+		}
+	}
+	return readyPodList, nil
 }
