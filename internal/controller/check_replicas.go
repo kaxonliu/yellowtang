@@ -38,14 +38,13 @@ func (r *YellowTangReconciler) checkReplicas(ctx context.Context, tang *appsv1.Y
 	missingReplicasNos := getMissingReplicasNos(targetReplicasNos, actualReplicasNos)
 	for _, podNo := range missingReplicasNos {
 
-		podName := fmt.Sprintf("mysql-%s", podNo)
-		pvcName := fmt.Sprintf("mysql-%s", podNo)
-		configMapName := fmt.Sprintf("mysql-%s", podNo)
+		podName := fmt.Sprintf("mysql-%02d", podNo)
+		pvcName := fmt.Sprintf("mysql-%02d", podNo)
+		configMapName := fmt.Sprintf("mysql-%02d", podNo)
 
 		// 如果 cm pvc pv 不存在则会新建
 		// 如果存在，k8s 接口内部会做判断，不会重复创建
-		serverId, _ := strconv.Atoi(podNo)
-		if _, err := r.createConfigMap(configMapName, serverId, ctx, tang); err != nil {
+		if _, err := r.createConfigMap(configMapName, podNo, ctx, tang); err != nil {
 			return ctrl.Result{}, err
 		}
 		if _, err := r.createPVC(pvcName, ctx, tang); err != nil {
@@ -61,40 +60,41 @@ func (r *YellowTangReconciler) checkReplicas(ctx context.Context, tang *appsv1.Y
 	return ctrl.Result{}, nil
 }
 
-func generateNumberRange(start, end int) []string {
+func generateNumberRange(start, end int) []int {
 	if end < start {
-		return []string{}
+		return []int{}
 	}
 
-	result := make([]string, end-start+1)
+	result := make([]int, end-start+1)
 	for i := start; i <= end; i++ {
-		result[i-start] = strconv.Itoa(i)
+		result[i-start] = i
 	}
 	return result
 }
 
-func parsePodNos(podList []corev1.Pod) []string {
-	var podNos []string
+func parsePodNos(podList []corev1.Pod) []int {
+	var podNos []int
 	var podNamePattern = regexp.MustCompile(`mysql-(\d+)`)
 
 	for _, pod := range podList {
 		if matches := podNamePattern.FindStringSubmatch(pod.Name); len(matches) > 1 {
-			podNos = append(podNos, matches[1])
+			podNo, _ := strconv.Atoi(matches[1])
+			podNos = append(podNos, podNo)
 		}
 	}
 	return podNos
 }
 
-func getMissingReplicasNos(a, b []string) []string {
+func getMissingReplicasNos(a, b []int) []int {
 	// 差集：在A中但不在B中的元素
 	// 创建集合B
-	setB := make(map[string]bool)
+	setB := make(map[int]bool)
 	for _, v := range b {
 		setB[v] = true
 	}
 
 	// 查找在A中但不在B中的元素
-	var diff []string
+	var diff []int
 	for _, v := range a {
 		if !setB[v] {
 			diff = append(diff, v)
