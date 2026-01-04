@@ -13,6 +13,8 @@ import (
 	appsv1 "yellowtang/api/v1"
 )
 
+// 调谐副本数量
+// 目前只支持扩容
 func (r *YellowTangReconciler) checkReplicas(ctx context.Context, tang *appsv1.YellowTang) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("开始检测副本数量是否满足预期")

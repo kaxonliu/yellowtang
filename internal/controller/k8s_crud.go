@@ -9,7 +9,6 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -228,12 +227,12 @@ func (r *YellowTangReconciler) createPVC(name string, ctx context.Context, tang 
 			},
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
-			AccessModes: []v1.PersistentVolumeAccessMode{
+			AccessModes: []corev1.PersistentVolumeAccessMode{
 				corev1.ReadWriteOnce,
 			},
 			Resources: corev1.VolumeResourceRequirements{
 				Requests: corev1.ResourceList{
-					v1.ResourceStorage: resource.MustParse(tang.Spec.Storage.Size),
+					corev1.ResourceStorage: resource.MustParse(tang.Spec.Storage.Size),
 				},
 			},
 			StorageClassName: &tang.Spec.Storage.StorageClassName,
@@ -342,6 +341,7 @@ func (r *YellowTangReconciler) createPod(podName, pvcName, configMapName string,
 	r.Log.Info("POD created successfully", "POD.Name", podName)
 
 	// 新增：等待pod就绪的功能，否则会提前制作主从，会因为pod尚未就绪而导致大量失败
+	// todo: 增加就绪等待时间和次数
 	podKey := client.ObjectKey{Namespace: tang.Namespace, Name: podName}
 
 	start := time.Now()
