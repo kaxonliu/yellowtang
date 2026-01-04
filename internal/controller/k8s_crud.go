@@ -524,5 +524,13 @@ func (r *YellowTangReconciler) getPodByLabels(selectLabels map[string]string, ct
 			readyPodList = append(readyPodList, pod)
 		}
 	}
-	return readyPodList, nil
+
+	// 过滤掉正在删除的 Pod
+	var activePods []corev1.Pod
+	for _, pod := range readyPodList {
+		if pod.DeletionTimestamp == nil {
+			activePods = append(activePods, pod)
+		}
+	}
+	return activePods, nil
 }
