@@ -18,12 +18,15 @@ package controller
 
 import (
 	"context"
+	"time"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	appsv1 "yellowtang/api/v1"
@@ -112,5 +115,12 @@ func (r *YellowTangReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&appsv1.YellowTang{}).
 		Owns(&corev1.Pod{}).
+		WithOptions(controller.Options{
+			// 增加重试次数
+			MaxConcurrentReconciles: 1,
+			// 调整事件处理
+			RateLimiter: workqueue.NewItemExponentialFailureRateLimiter(
+				time.Second, 10*time.Second),
+		}).
 		Complete(r)
 }
