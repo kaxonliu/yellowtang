@@ -45,11 +45,11 @@ func (r *YellowTangReconciler) checkReplicas(ctx context.Context, tang *appsv1.Y
 		configMapName := fmt.Sprintf("mysql-%02d", podNo)
 
 		// 如果 cm pvc pv 不存在则会新建
-		// 如果存在，k8s 接口内部会做判断，不会重复创建
-		if _, err := r.createConfigMap(configMapName, podNo, ctx, tang); err != nil {
+		// 如果存在则不创建
+		if _, err := r.getorCreatConfigMap(configMapName, podNo, ctx, tang); err != nil {
 			return ctrl.Result{}, err
 		}
-		if _, err := r.createPVC(pvcName, ctx, tang); err != nil {
+		if _, err := r.getorCreatePVC(pvcName, ctx, tang); err != nil {
 			return ctrl.Result{}, err
 		}
 
