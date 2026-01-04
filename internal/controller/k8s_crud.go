@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -401,7 +402,7 @@ func (r *YellowTangReconciler) setupMasterSlaveReplication(ctx context.Context, 
 		return fmt.Errorf("failed to get master pod %s: %v", masterName, err)
 	}
 
-	// 打标签主库: 确保理解关联到主svc上，从库会通过主库的svc来连接进行同步
+	// 打标签主库: 确保关联到主svc上，从库会通过主库的svc来连接进行同步
 	if err := r.labelPod(masterPod, "master", ctx, tang); err != nil {
 		return fmt.Errorf("failed to label master pod %s: %v", masterName, err)
 	}
@@ -497,4 +498,23 @@ func (r *YellowTangReconciler) execCommandOnPod(pod *corev1.Pod, command string)
 	}
 
 	return output.String(), nil
+}
+
+func (r *YellowTangReconciler) getPodByLabels(selectLabels map[string]string, ctx context.Context, tang *appsv1.YellowTang) ([]corev1.Pod, error) {
+	log := log.FromContext(ctx)
+
+	podList := corev1.PodList{}
+
+	// 创建 ListOptions，根据需要筛选 Pod（使用标签选择器或其他筛选条件）
+	listOptions := &client.ListOptions{
+		Namespace:     tang.Namespace,
+		LabelSelector: labels.SelectorFromSet(selectLabels),
+	}
+
+	// 获取 Pod 列表
+	if err := r.List(ctx, &podList, listOptions); err != nil {
+		log.Error(err, "获取 Pod 列表失败")
+		return podList.Items, err
+	}
+	return podList.Items, nil
 }

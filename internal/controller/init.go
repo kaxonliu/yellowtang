@@ -62,6 +62,7 @@ func (r *YellowTangReconciler) init(ctx context.Context, tang *appsv1.YellowTang
 		}
 	}
 	// 6、制作主从关系
+	// 初始集群，默认把第一个 pod 当作主库
 	masterPodName := "mysql-01"
 	slavePodNames := []string{}
 	for i := int32(2); i <= replicas; i++ {
