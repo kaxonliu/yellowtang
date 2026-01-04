@@ -33,7 +33,22 @@ func (r *YellowTangReconciler) checkMasterStatus(ctx context.Context, tang *apps
 }
 
 // 处理出库挂掉的情况
+// 当主库挂掉时，需要选举新的主库并重新配置主从关系：
 func (r *YellowTangReconciler) handleMasterFailure(ctx context.Context, tang *appsv1.YellowTang) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+	logger.Info("开始处理出库挂掉的情况...")
+
+	// 选举新的主库（假设选举逻辑已经实现）
+	newMasterName, remainingSlaves, err := r.electNewMaster(ctx, tang)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// 重新配置主从关系
+	if err := r.setupMasterSlaveReplication(ctx, newMasterName, remainingSlaves, tang); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -117,6 +132,7 @@ func (r *YellowTangReconciler) checkCluster(ctx context.Context, tang *appsv1.Ye
 	if !masterAlive {
 		// 主库挂了
 		if result, err := r.handleMasterFailure(ctx, tang); err != nil {
+			// 如果处理主库故障时出现错误，则返回错误并重新排队调谐
 			return result, err
 		}
 	} else {
@@ -132,7 +148,7 @@ func (r *YellowTangReconciler) checkCluster(ctx context.Context, tang *appsv1.Ye
 			failedSlavePodNameList = append(failedSlavePodNameList, pod.Name)
 		}
 		// 避免重复设置主库
-		if len(failedSlavePodNameList) > 1 {
+		if len(failedSlavePodNameList) >= 1 {
 			if err := r.setupMasterSlaveReplication(ctx, masterPodName, failedSlavePodNameList, tang); err != nil {
 				return ctrl.Result{}, err
 			}
@@ -141,7 +157,6 @@ func (r *YellowTangReconciler) checkCluster(ctx context.Context, tang *appsv1.Ye
 		for _, pod := range allSlavePodList {
 			r.labelPod(&pod, "slave", ctx, tang)
 		}
-
 	}
 
 	return ctrl.Result{}, nil

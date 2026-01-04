@@ -51,6 +51,7 @@ type YellowTangSpec struct {
 	Storage           StorageConfig   `json:"storage"`
 	Resources         ResourcesConfig `json:"resources"`
 	ReadinessProbe    *corev1.Probe   `json:"readinessProbe,omitempty"`
+	LivenessProbe     *corev1.Probe   `json:"livenessProbe,omitempty"`
 }
 
 // YellowTangStatus defines the observed state of YellowTang

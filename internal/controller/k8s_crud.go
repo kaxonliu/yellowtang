@@ -310,6 +310,7 @@ func (r *YellowTangReconciler) createPod(podName, pvcName, configMapName string,
 					},
 					Resources:      resources,
 					ReadinessProbe: tang.Spec.ReadinessProbe,
+					LivenessProbe:  tang.Spec.LivenessProbe,
 				},
 			},
 			Volumes: []corev1.Volume{

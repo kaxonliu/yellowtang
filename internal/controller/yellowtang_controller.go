@@ -44,6 +44,8 @@ type YellowTangReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 	Log    logr.Logger // 日志记录器
+    MasterGTIDSnapshot string  // 用于存储主库的 GTID 快照
+    SnapGoIsEnabled    bool   // 标识用于记录GTID快照的协程序是否启动，默认值为false，只有启动后才会设置为true
 }
 
 // +kubebuilder:rbac:groups=apps.kaxonliu.com,resources=yellowtangs,verbs=get;list;watch;create;update;patch;delete

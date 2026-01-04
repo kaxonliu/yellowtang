@@ -28,3 +28,13 @@ spec:
     timeoutSeconds: 5
     successThreshold: 1
     failureThreshold: 3
+  livenessProbe:
+    exec:
+      command: 
+       - cat
+       - /tmp/healthy
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 3
